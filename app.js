@@ -56,9 +56,10 @@ const tutorialStyles = `
   background: white; border-radius: 12px; padding: 24px;
   max-width: 450px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   z-index: 2002; animation: slideUp 0.3s ease-out;
+  position: absolute;
 }
 .tutorial-overlay.full-screen .tutorial-modal {
-  position: relative;
+  position: relative; top: auto; left: auto;
 }
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
@@ -1048,19 +1049,21 @@ function showTutorialStep() {
   overlay.id = "tutorial-overlay";
   overlay.className = "tutorial-overlay";
 
+  let targetRect = null;
+  
   // 풀스크린 모드 또는 타겟 요소 하이라이트
   if (step.fullScreen) {
     overlay.classList.add("full-screen");
   } else if (step.target) {
     const target = document.querySelector(step.target);
     if (target) {
-      const rect = target.getBoundingClientRect();
+      targetRect = target.getBoundingClientRect();
       const highlight = document.createElement("div");
       highlight.className = "tutorial-highlight";
-      highlight.style.top = rect.top + window.scrollY + "px";
-      highlight.style.left = rect.left + "px";
-      highlight.style.width = rect.width + "px";
-      highlight.style.height = rect.height + "px";
+      highlight.style.top = targetRect.top + window.scrollY + "px";
+      highlight.style.left = targetRect.left + "px";
+      highlight.style.width = targetRect.width + "px";
+      highlight.style.height = targetRect.height + "px";
       overlay.appendChild(highlight);
     }
   }
@@ -1068,6 +1071,8 @@ function showTutorialStep() {
   // 설명 모달
   const modal = document.createElement("div");
   modal.className = "tutorial-modal";
+  modal.style.position = "fixed";
+  modal.style.zIndex = "2002";
 
   const isLast = tutorialState.currentStep === TUTORIAL_STEPS.length - 1;
   const isFirst = tutorialState.currentStep === 0;
@@ -1089,6 +1094,32 @@ function showTutorialStep() {
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+  
+  // 모달 위치 계산 (타겟 요소 옆에 배치)
+  if (targetRect && !step.fullScreen) {
+    const modalRect = modal.getBoundingClientRect();
+    const padding = 16;
+    let left = targetRect.right + padding;
+    let top = targetRect.top;
+    
+    // 화면 오른쪽을 벗어나면 왼쪽에 배치
+    if (left + modalRect.width > window.innerWidth - padding) {
+      left = targetRect.left - modalRect.width - padding;
+    }
+    
+    // 화면 위쪽을 벗어나면 아래로 조정
+    if (top < padding) {
+      top = padding;
+    }
+    
+    // 화면 아래쪽을 벗어나면 위로 조정
+    if (top + modalRect.height > window.innerHeight - padding) {
+      top = window.innerHeight - modalRect.height - padding;
+    }
+    
+    modal.style.left = left + "px";
+    modal.style.top = top + "px";
+  }
 
   // 이벤트 리스너
   if (!isFirst) {
