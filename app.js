@@ -2,10 +2,26 @@ const STORAGE_KEY = "nine_project_mvp_v1";
 const FAIL_PENALTY_POINTS = 5;
 const THEME_KEY = "mission_possible_theme";
 
+const TUTORIAL_STEPS = [
+  { id: 0, title: "미션 파서블에 오신 것을 환영합니다!", description: "미루기를 방지하고 집중력을 높이는 앱입니다.\n단계별로 모든 기능을 배워보세요!" },
+  { id: 1, title: "포인트 시스템", description: "세션을 완료하면 포인트를 얻습니다.\n포인트로 휴식권과 실드를 구매할 수 있어요.", target: ".muted" },
+  { id: 2, title: "할 일 추가", description: "할 일 제목과 예상 시간을 입력한 후\n'추가' 버튼을 클릭하세요.", target: "#task-title" },
+  { id: 3, title: "할 일 선택 및 시작", description: "오늘 목록에서 할 일을 선택한 후\n'지금 시작' 버튼을 눌러 집중 세션을 시작하세요.", target: "#start-session" },
+  { id: 4, title: "집중 모드", description: "집중 모드에서는 다른 화면으로 이동할 수 없습니다.\n타이머가 끝나거나 완료 버튼으로 세션을 마칠 수 있습니다.", fullScreen: true },
+  { id: 5, title: "포인트 획득", description: "세션을 완료하면 포인트를 획득합니다.\n실패하면 포인트를 잃을 수 있습니다.", fullScreen: true },
+  { id: 6, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", target: "[id='buy-break']" },
+  { id: 7, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 볼 수 있습니다.", target: "[id='nav-report']" },
+  { id: 8, title: "모든 기능을 배웠습니다!", description: "이제 할 일을 추가해서 시작해보세요!\n홈 화면에서 언제든 '튜토리얼' 버튼으로 다시 볼 수 있습니다." },
+];
+
 const state = loadState();
 let timerId = null;
 let editingTaskId = null;
 let alertAudioContext = null;
+let tutorialState = {
+  active: false,
+  currentStep: 0,
+};
 
 const screens = {
   onboarding: document.getElementById("screen-onboarding"),
@@ -142,6 +158,7 @@ function renderHome() {
       <div class="row">
         <button id="buy-break" class="small ghost">30P로 휴식권 구매</button>
         <button id="buy-shield" class="small ghost">40P로 실드 구매</button>
+        <button id="start-tutorial" class="small ghost">📖 튜토리얼</button>
       </div>
     </div>
 
@@ -241,6 +258,7 @@ function renderHome() {
 
   document.getElementById("buy-break").addEventListener("click", () => spendPoints(30, "break"));
   document.getElementById("buy-shield").addEventListener("click", () => spendPoints(40, "shield"));
+  document.getElementById("start-tutorial").addEventListener("click", startTutorial);
   document.getElementById("start-selected").addEventListener("click", () => {
     if (state.selectedTaskId) startFocus(state.selectedTaskId);
   });
@@ -967,7 +985,111 @@ function setNextWeekGoal() {
   }
   state.settings.nextWeekGoal = Math.round(goal);
   saveState();
-  renderReport();
+}
+
+// 튜토리얼 함수들
+function startTutorial() {
+  tutorialState.active = true;
+  tutorialState.currentStep = 0;
+  showTutorialStep();
+}
+
+function showTutorialStep() {
+  const step = TUTORIAL_STEPS[tutorialState.currentStep];
+  if (!step) {
+    endTutorial();
+    return;
+  }
+
+  // 기존 오버레이 제거
+  const existing = document.getElementById("tutorial-overlay");
+  if (existing) existing.remove();
+
+  // 오버레이 생성
+  const overlay = document.createElement("div");
+  overlay.id = "tutorial-overlay";
+  overlay.className = "tutorial-overlay";
+
+  // 풀스크린 모드 또는 타겟 요소 하이라이트
+  if (step.fullScreen) {
+    overlay.classList.add("full-screen");
+  } else if (step.target) {
+    const target = document.querySelector(step.target);
+    if (target) {
+      const rect = target.getBoundingClientRect();
+      const highlight = document.createElement("div");
+      highlight.className = "tutorial-highlight";
+      highlight.style.top = rect.top + window.scrollY + "px";
+      highlight.style.left = rect.left + "px";
+      highlight.style.width = rect.width + "px";
+      highlight.style.height = rect.height + "px";
+      overlay.appendChild(highlight);
+    }
+  }
+
+  // 설명 모달
+  const modal = document.createElement("div");
+  modal.className = "tutorial-modal";
+
+  const isLast = tutorialState.currentStep === TUTORIAL_STEPS.length - 1;
+  const isFirst = tutorialState.currentStep === 0;
+
+  modal.innerHTML = `
+    <div class="tutorial-content">
+      <h2 style="margin-top: 0;">${step.title}</h2>
+      <p>${step.description.replace(/\n/g, "<br>")}</p>
+      <div class="tutorial-progress">
+        ${tutorialState.currentStep + 1} / ${TUTORIAL_STEPS.length}
+      </div>
+      <div class="row" style="gap: 8px; margin-top: 16px;">
+        ${!isFirst ? '<button id="tutorial-prev" class="small">이전</button>' : ''}
+        <button id="tutorial-skip" class="small ghost">건너뛰기</button>
+        ${!isLast ? '<button id="tutorial-next" class="small">다음</button>' : '<button id="tutorial-finish" class="small">완료</button>'}
+      </div>
+    </div>
+  `;
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // 이벤트 리스너
+  if (!isFirst) {
+    document.getElementById("tutorial-prev").addEventListener("click", prevTutorialStep);
+  }
+  document.getElementById("tutorial-skip").addEventListener("click", endTutorial);
+  
+  if (isLast) {
+    document.getElementById("tutorial-finish").addEventListener("click", endTutorial);
+  } else {
+    document.getElementById("tutorial-next").addEventListener("click", nextTutorialStep);
+  }
+
+  // 오버레이 클릭으로 다음 단계
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay && !step.fullScreen) {
+      nextTutorialStep();
+    }
+  });
+}
+
+function nextTutorialStep() {
+  if (tutorialState.currentStep < TUTORIAL_STEPS.length - 1) {
+    tutorialState.currentStep++;
+    showTutorialStep();
+  }
+}
+
+function prevTutorialStep() {
+  if (tutorialState.currentStep > 0) {
+    tutorialState.currentStep--;
+    showTutorialStep();
+  }
+}
+
+function endTutorial() {
+  tutorialState.active = false;
+  const overlay = document.getElementById("tutorial-overlay");
+  if (overlay) overlay.remove();
 }
 
 function saveTaskEdit() {
