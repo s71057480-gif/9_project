@@ -1,8 +1,11 @@
 const STORAGE_KEY = "nine_project_mvp_v1";
+const FAIL_PENALTY_POINTS = 5;
+const THEME_KEY = "mission_possible_theme";
 
 const state = loadState();
 let timerId = null;
 let editingTaskId = null;
+let alertAudioContext = null;
 
 const screens = {
   onboarding: document.getElementById("screen-onboarding"),
@@ -17,8 +20,36 @@ document.getElementById("nav-report").addEventListener("click", () => {
   renderReport();
   showScreen("report");
 });
+document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+window.addEventListener("beforeunload", (event) => {
+  if (!state.activeSession) return;
+  event.preventDefault();
+  event.returnValue = "";
+});
+document.addEventListener("pointerdown", primeAlertSound, { once: true });
+document.addEventListener("keydown", primeAlertSound, { once: true });
 
+initTheme();
 init();
+
+function initTheme() {
+  const savedTheme = localStorage.getItem(THEME_KEY);
+  applyTheme(savedTheme === "dark");
+}
+
+function toggleTheme() {
+  const isDark = !document.body.classList.contains("dark-mode");
+  applyTheme(isDark);
+  localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
+}
+
+function applyTheme(isDark) {
+  document.body.classList.toggle("dark-mode", isDark);
+  const toggleBtn = document.getElementById("theme-toggle");
+  if (toggleBtn) {
+    toggleBtn.textContent = isDark ? "라이트" : "다크";
+  }
+}
 
 function init() {
   if (!state.settings.onboarded) {
@@ -47,7 +78,7 @@ function renderOnboarding() {
           <input id="onboard-goal" type="number" min="1" max="10" value="2" />
         </label>
         <label>기본 집중 시간
-          <input id="onboard-minutes" type="number" value="25" />
+          <input id="onboard-minutes" type="number" step="1" inputmode="numeric" value="25" />
         </label>
       </div>
       <label style="display:block; margin-top:8px;">
@@ -69,6 +100,10 @@ function renderOnboarding() {
     }
     if (!Number.isFinite(defaultMinutes)) {
       alert("기본 집중 시간은 숫자로 입력해주세요.");
+      return;
+    }
+    if (defaultMinutes < 1) {
+      alert("기본 집중 시간은 1분 이상으로 입력해주세요.");
       return;
     }
 
@@ -112,12 +147,16 @@ function renderHome() {
 
     <div class="card">
       <h3 style="margin-top:0;">할 일 추가</h3>
+      <p class="muted" style="margin: 6px 0 0;">입력이 안 된다면 새로고침하기.</p>
+      <div class="row" style="justify-content: flex-end; margin: 6px 0 10px;">
+        <button id="task-refresh" class="ghost">새로고침</button>
+      </div>
       <div class="grid-2">
         <label>할 일 제목
           <input id="task-title" placeholder="예: 이력서 1개 항목 수정" />
         </label>
         <label>예상 시간
-          <input id="task-minutes" type="number" value="${state.settings.defaultMinutes || 25}" />
+          <input id="task-minutes" type="number" step="1" inputmode="numeric" value="${state.settings.defaultMinutes || 25}" />
         </label>
       </div>
       <label style="margin-top:8px; display:block;">우선순위
@@ -147,7 +186,7 @@ function renderHome() {
                 <input id="edit-task-title" value="${escapeAttr(editingTask.title)}" />
               </label>
               <label>예상 시간
-                <input id="edit-task-minutes" type="number" value="${editingTask.estimatedMinutes}" />
+                <input id="edit-task-minutes" type="number" step="1" inputmode="numeric" value="${editingTask.estimatedMinutes}" />
               </label>
             </div>
             <label style="margin-top:8px; display:block;">우선순위
@@ -180,6 +219,10 @@ function renderHome() {
       alert("예상 시간은 숫자로 입력해주세요.");
       return;
     }
+    if (minutes < 1) {
+      alert("예상 시간은 1분 이상으로 입력해주세요.");
+      return;
+    }
 
     state.tasks.push({
       id: uid(),
@@ -193,6 +236,8 @@ function renderHome() {
     saveState();
     renderHome();
   });
+
+  document.getElementById("task-refresh").addEventListener("click", renderHome);
 
   document.getElementById("buy-break").addEventListener("click", () => spendPoints(30, "break"));
   document.getElementById("buy-shield").addEventListener("click", () => spendPoints(40, "shield"));
@@ -301,18 +346,35 @@ function renderFocus() {
   const active = state.activeSession;
   if (!active) return;
   const task = state.tasks.find((t) => t.id === active.taskId);
+  const canEarlyComplete = active.remainingSeconds > 0 && state.points >= 15;
+  const earlyCompleteCost = 15;
 
   screens.focus.innerHTML = `
     <div class="card">
       <h2 style="margin-top:0;">집중 실행</h2>
       <p class="muted">현재 할 일</p>
       <strong>${escapeHtml(task ? task.title : "삭제된 할 일")}</strong>
+      <p class="muted">집중 중에는 다른 화면으로 이동할 수 없습니다.</p>
       <div id="timer-view" class="timer">${formatTime(active.remainingSeconds)}</div>
       <div class="row">
         <button id="pause-btn" class="ghost">${active.paused ? "재개" : "일시정지"}</button>
-        <button id="complete-btn">완료</button>
+        <button id="complete-btn" ${active.remainingSeconds > 0 ? "disabled title=\"시간이 끝나야 완료할 수 있습니다. 15P를 사용해 조기완료하세요.\"" : ""}>완료</button>
         <button id="fail-btn" class="danger">포기/실패</button>
       </div>
+      ${
+        active.remainingSeconds > 0
+          ? `<div class="card" style="margin-top:12px; background: rgba(100,200,255,0.1); padding: 8px; border-left: 3px solid #64c8ff;">
+              <p style="margin: 0; font-size: 12px;">
+                <strong>${earlyCompleteCost}P</strong>를 사용해 지금 완료할 수 있습니다.
+                ${!canEarlyComplete ? `<span style="color: #ff6b6b;"> (포인트 부족: ${state.points}/${earlyCompleteCost})</span>` : ""}
+              </p>
+              <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+                <button id="early-complete-btn" ${!canEarlyComplete ? "disabled" : ""} class="small">${earlyCompleteCost}P로 지금 완료</button>
+                <span style="font-size: 12px; color: #666;">양심 껏 하세요.</span>
+              </div>
+            </div>`
+          : ""
+      }
     </div>
   `;
 
@@ -323,6 +385,20 @@ function renderFocus() {
   });
   document.getElementById("complete-btn").addEventListener("click", () => finishSession("success"));
   document.getElementById("fail-btn").addEventListener("click", () => finishSession("fail"));
+  
+  const earlyCompleteBtn = document.getElementById("early-complete-btn");
+  if (earlyCompleteBtn) {
+    earlyCompleteBtn.addEventListener("click", () => {
+      if (state.points >= 15) {
+        state.points -= 15;
+        active.remainingSeconds = 0; // 남은 시간을 0으로 설정해 완료 가능하게
+        saveState();
+        finishSession("success");
+      } else {
+        alert("포인트가 부족합니다.");
+      }
+    });
+  }
 }
 
 function startTimer() {
@@ -330,14 +406,16 @@ function startTimer() {
   timerId = setInterval(() => {
     const active = state.activeSession;
     if (!active || active.paused) return;
+
+    if (active.remainingSeconds <= 0) {
+      finishByTimer();
+      return;
+    }
+
     active.remainingSeconds -= 1;
 
     if (active.remainingSeconds <= 0) {
-      active.remainingSeconds = 0;
-      saveState();
-      clearInterval(timerId);
-      renderFocus();
-      showResultScreen();
+      finishByTimer();
       return;
     }
 
@@ -347,6 +425,71 @@ function startTimer() {
     }
     saveState();
   }, 1000);
+}
+
+function finishByTimer() {
+  const active = state.activeSession;
+  if (!active) return;
+
+  active.remainingSeconds = 0;
+  saveState();
+  clearInterval(timerId);
+  
+  // 사운드 재생 시작
+  playAlertSound();
+  
+  // 사운드 길이(약 800ms) 후에 알림창 표시
+  setTimeout(() => {
+    alert("시간이 다 됐습니다.");
+  }, 850);
+  
+  // 알림창이 나타난 후 화면 업데이트
+  setTimeout(() => {
+    renderFocus();
+    showResultScreen();
+  }, 1000);
+}
+
+function primeAlertSound() {
+  if (alertAudioContext) return;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+  alertAudioContext = new AudioContextClass();
+  if (alertAudioContext.state === "suspended") {
+    alertAudioContext.resume().catch(() => {});
+  }
+}
+
+function playAlertSound() {
+  primeAlertSound();
+  if (!alertAudioContext) return;
+
+  const context = alertAudioContext;
+  if (context.state === "suspended") {
+    context.resume().catch(() => {});
+  }
+
+  const beep = (frequency, startTime, duration, peakGain, type = "sine") => {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = type;
+    oscillator.frequency.value = frequency;
+    gainNode.gain.value = 0;
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+
+    gainNode.gain.linearRampToValueAtTime(peakGain, startTime + 0.02);
+    gainNode.gain.linearRampToValueAtTime(peakGain * 0.7, startTime + duration * 0.8);
+    gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  };
+
+  const now = context.currentTime;
+  // 1000Hz 3단계 알림음
+  beep(1000, now, 0.2, 0.3);        // 첫 번째 비프
+  beep(1000, now + 0.25, 0.2, 0.3); // 두 번째 비프
+  beep(1000, now + 0.5, 0.3, 0.35); // 세 번째 비프
 }
 
 function showResultScreen(presetResult) {
@@ -366,11 +509,12 @@ function showResultScreen(presetResult) {
       </label>
       <label id="fail-reason-wrap" style="display:block; margin-top:8px;">
         실패 사유
-        <select id="fail-reason">
-          <option value="집중 깨짐">집중 깨짐</option>
-          <option value="시간 과소추정">시간 과소추정</option>
-          <option value="난이도 높음">난이도 높음</option>
-        </select>
+        <div id="fail-reasons" class="check-grid">
+          <label><input type="checkbox" name="fail-reason" value="집중 깨짐" /> 집중 깨짐</label>
+          <label><input type="checkbox" name="fail-reason" value="시간 과소추정" /> 시간 과소추정</label>
+          <label><input type="checkbox" name="fail-reason" value="난이도 높음" /> 난이도 높음</label>
+          <label><input type="checkbox" name="fail-reason" value="외부 방해" /> 외부 방해</label>
+        </div>
       </label>
       <label style="display:block; margin-top:8px;">
         메모(선택)
@@ -383,6 +527,7 @@ function showResultScreen(presetResult) {
 
     <div class="card" id="fail-actions-card">
       <h3 style="margin-top:0;">실패 시 바로 조정</h3>
+      <p class="muted">실드를 사용하지 않으면 포인트 ${FAIL_PENALTY_POINTS}P가 차감됩니다.</p>
       <div class="row">
         <button id="split-task" class="small ghost">할 일 쪼개기</button>
         <button id="extend-task" class="small ghost">+10분 연장</button>
@@ -414,7 +559,10 @@ function showResultScreen(presetResult) {
 
   document.getElementById("save-result").addEventListener("click", () => {
     const result = resultType.value;
-    const failReason = result === "fail" ? document.getElementById("fail-reason").value : "";
+    const failReasons =
+      result === "fail"
+        ? Array.from(document.querySelectorAll('input[name="fail-reason"]:checked')).map((input) => input.value)
+        : [];
     const memo = document.getElementById("result-memo").value.trim();
     const useShield = result === "fail" && document.getElementById("use-shield").checked;
 
@@ -423,21 +571,27 @@ function showResultScreen(presetResult) {
       logPoint("use", -40, "실드 사용");
     }
 
-    finalizeSession(result, failReason, memo);
+    finalizeSession(result, failReasons, memo, useShield);
   });
 
   showScreen("result");
 }
 
 function finishSession(presetResult) {
+  if (presetResult === "success" && state.activeSession && state.activeSession.remainingSeconds > 0) {
+    alert("남은 시간이 있어 15P를 사용해 조기완료하세요.");
+    renderFocus();
+    return;
+  }
   clearInterval(timerId);
   showResultScreen(presetResult);
 }
 
-function finalizeSession(result, failReason, memo) {
+function finalizeSession(result, failReasons, memo, useShield = false) {
   const active = state.activeSession;
   if (!active) return;
   const task = state.tasks.find((t) => t.id === active.taskId);
+  const normalizedFailReasons = normalizeFailReasons(failReasons);
 
   state.sessions.push({
     id: active.id,
@@ -446,7 +600,8 @@ function finalizeSession(result, failReason, memo) {
     endAt: new Date().toISOString(),
     plannedMinutes: active.plannedMinutes,
     result,
-    failReason: failReason || "",
+    failReasons: normalizedFailReasons,
+    failReason: normalizedFailReasons[0] || "",
     memo: memo || "",
   });
 
@@ -457,6 +612,12 @@ function finalizeSession(result, failReason, memo) {
   if (result === "success") {
     state.points += 10;
     logPoint("earn", 10, "집중 세션 완료");
+  } else if (!useShield) {
+    const penalty = Math.min(state.points, FAIL_PENALTY_POINTS);
+    state.points -= penalty;
+    if (penalty > 0) {
+      logPoint("use", -penalty, "실패 페널티");
+    }
   }
 
   state.activeSession = null;
@@ -483,7 +644,14 @@ function renderReport() {
   periodSessions
     .filter((s) => s.result === "fail")
     .forEach((s) => {
-      failCounts[s.failReason] = (failCounts[s.failReason] || 0) + 1;
+      const reasons = normalizeFailReasons(s.failReasons || s.failReason);
+      if (!reasons.length) {
+        failCounts["미입력"] = (failCounts["미입력"] || 0) + 1;
+        return;
+      }
+      reasons.forEach((reason) => {
+        failCounts[reason] = (failCounts[reason] || 0) + 1;
+      });
     });
 
   const topFails = Object.entries(failCounts)
@@ -495,7 +663,7 @@ function renderReport() {
   screens.report.innerHTML = `
     <div class="card">
       <div class="row" style="justify-content: space-between; margin-bottom: 8px;">
-        <h2 style="margin:0;">리포트</h2>
+        <h2 style="margin:0;">기록</h2>
         <div class="row">
           <button id="mode-day" class="small ${reportMode === "day" ? "" : "ghost"}">일</button>
           <button id="mode-week" class="small ${reportMode === "week" ? "" : "ghost"}">주</button>
@@ -527,7 +695,7 @@ function renderReport() {
       ${
         recentLedger.length
           ? `<ul class="list">${recentLedger
-              .map((l) => `<li>${new Date(l.createdAt).toLocaleString()} · ${l.reason} · ${l.amount > 0 ? "+" : ""}${l.amount}P</li>`)
+              .map((l) => `<li>${formatKoreanDateTime(new Date(l.createdAt))} · ${l.reason} · ${l.amount > 0 ? "+" : ""}${l.amount}P</li>`)
               .join("")}</ul>`
           : `<p class="muted">포인트 내역이 없습니다.</p>`
       }
@@ -535,9 +703,8 @@ function renderReport() {
 
     <div class="card">
       <h3 style="margin-top:0;">다음 주 목표</h3>
-      <p class="muted">현재 설정: 하루 ${state.settings.nextWeekGoal || state.settings.dailyGoal || 2}개</p>
       <div class="row">
-        <input id="next-week-goal-input" type="number" min="1" max="10" value="${state.settings.nextWeekGoal || state.settings.dailyGoal || 2}" style="max-width:120px;" />
+        <input id="next-week-goal-input" type="number" value="${state.settings.nextWeekGoal || ""}" placeholder="목표 입력" style="max-width:140px;" />
         <button id="set-next-goal" class="small">목표 저장</button>
       </div>
     </div>
@@ -551,6 +718,9 @@ function renderReport() {
 }
 
 function showScreen(key) {
+  if (state.activeSession && key !== "focus" && key !== "result") {
+    key = "focus";
+  }
   Object.entries(screens).forEach(([k, el]) => {
     el.classList.toggle("hidden", k !== key);
   });
@@ -562,6 +732,11 @@ function syncTopNav(screenKey) {
   const reportBtn = document.getElementById("nav-report");
   if (!homeBtn || !reportBtn) return;
 
+  const locked = Boolean(state.activeSession);
+  homeBtn.disabled = locked && screenKey !== "home";
+  reportBtn.disabled = locked && screenKey !== "report";
+  homeBtn.title = locked ? "집중 세션이 끝나면 이동할 수 있습니다." : "";
+  reportBtn.title = locked ? "집중 세션이 끝나면 이동할 수 있습니다." : "";
   homeBtn.classList.toggle("active", screenKey === "home");
   reportBtn.classList.toggle("active", screenKey === "report");
 }
@@ -622,19 +797,55 @@ function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (raw) {
     const parsed = JSON.parse(raw);
+    let needsSave = false;
     if (!parsed.settings) parsed.settings = {};
-    if (!parsed.settings.dailyGoal) parsed.settings.dailyGoal = 2;
-    if (!parsed.settings.defaultMinutes) parsed.settings.defaultMinutes = 25;
-    if (typeof parsed.settings.notifications !== "boolean") parsed.settings.notifications = true;
-    if (!parsed.report) parsed.report = { mode: "week", offset: 0 };
-    if (!Array.isArray(parsed.tasks)) parsed.tasks = [];
+    if (!parsed.settings.dailyGoal) {
+      parsed.settings.dailyGoal = 2;
+      needsSave = true;
+    }
+    if (!Number.isFinite(parsed.settings.defaultMinutes) || parsed.settings.defaultMinutes < 1) {
+      parsed.settings.defaultMinutes = 25;
+      needsSave = true;
+    }
+    if (typeof parsed.settings.notifications !== "boolean") {
+      parsed.settings.notifications = true;
+      needsSave = true;
+    }
+    if (!parsed.report) {
+      parsed.report = { mode: "week", offset: 0 };
+      needsSave = true;
+    }
+    if (!Array.isArray(parsed.tasks)) {
+      parsed.tasks = [];
+      needsSave = true;
+    }
     parsed.tasks.forEach((task, index) => {
-      if (typeof task.order !== "number") task.order = index;
+      if (typeof task.order !== "number") {
+        task.order = index;
+        needsSave = true;
+      }
+      if (!Number.isFinite(task.estimatedMinutes) || task.estimatedMinutes < 1) {
+        task.estimatedMinutes = 5;
+        needsSave = true;
+      }
     });
-    if (!("selectedTaskId" in parsed)) parsed.selectedTaskId = null;
-    if (typeof parsed.breakTokens !== "number") parsed.breakTokens = 0;
-    if (typeof parsed.shields !== "number") parsed.shields = 0;
-    if (!Array.isArray(parsed.pointLedger)) parsed.pointLedger = [];
+    if (!("selectedTaskId" in parsed)) {
+      parsed.selectedTaskId = null;
+      needsSave = true;
+    }
+    if (typeof parsed.breakTokens !== "number") {
+      parsed.breakTokens = 0;
+      needsSave = true;
+    }
+    if (typeof parsed.shields !== "number") {
+      parsed.shields = 0;
+      needsSave = true;
+    }
+    if (!Array.isArray(parsed.pointLedger)) {
+      parsed.pointLedger = [];
+      needsSave = true;
+    }
+    if (needsSave) localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
     return parsed;
   }
   return {
@@ -647,7 +858,7 @@ function loadState() {
     },
     tasks: [],
     sessions: [],
-    points: 0,
+    points: 999999,
     breakTokens: 0,
     shields: 0,
     pointLedger: [],
@@ -744,9 +955,14 @@ function shiftReportOffset(delta) {
 function setNextWeekGoal() {
   const input = document.getElementById("next-week-goal-input");
   if (!input) return;
-  const goal = Number(input.value);
-  if (!Number.isFinite(goal) || goal < 1 || goal > 10) {
-    alert("1~10 사이 숫자를 입력해주세요.");
+  const raw = input.value.trim();
+  if (!raw) {
+    alert("목표를 입력해주세요.");
+    return;
+  }
+  const goal = Number(raw);
+  if (!Number.isFinite(goal)) {
+    alert("목표는 숫자로 입력해주세요.");
     return;
   }
   state.settings.nextWeekGoal = Math.round(goal);
@@ -775,6 +991,10 @@ function saveTaskEdit() {
     alert("시간은 숫자로 입력해주세요.");
     return;
   }
+  if (minutes < 1) {
+    alert("시간은 1분 이상으로 입력해주세요.");
+    return;
+  }
   if (!["high", "medium", "low"].includes(priority)) {
     alert("우선순위는 high, medium, low 중 하나여야 합니다.");
     return;
@@ -799,7 +1019,7 @@ function getReportRange(mode, offset) {
     return {
       start: day,
       end,
-      label: `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`,
+      label: formatKoreanDate(day),
     };
   }
 
@@ -814,8 +1034,28 @@ function getReportRange(mode, offset) {
   return {
     start: base,
     end,
-    label: `${base.getMonth() + 1}/${base.getDate()} - ${end.getMonth() + 1}/${end.getDate()}`,
+    label: `${formatKoreanShortDate(base)} - ${formatKoreanShortDate(end)}`,
   };
+}
+
+function formatKoreanDate(d) {
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+function formatKoreanShortDate(d) {
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+
+function formatKoreanDateTime(d) {
+  return d.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 function escapeHtml(str) {
@@ -829,4 +1069,15 @@ function escapeHtml(str) {
 
 function escapeAttr(str) {
   return escapeHtml(str).replace(/`/g, "&#96;");
+}
+
+function normalizeFailReasons(value) {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v).trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    const single = value.trim();
+    return single ? [single] : [];
+  }
+  return [];
 }

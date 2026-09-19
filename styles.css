@@ -18,6 +18,22 @@
   --shadow-strong: 0 18px 40px rgba(15, 23, 42, 0.16);
 }
 
+body.dark-mode {
+  --bg: #0b1220;
+  --bg-accent-1: #1d4ed8;
+  --bg-accent-2: #92400e;
+  --bg-accent-3: #065f46;
+  --card: rgba(15, 23, 42, 0.72);
+  --ink: #e2e8f0;
+  --sub: #94a3b8;
+  --line: rgba(148, 163, 184, 0.26);
+  --brand: #14b8a6;
+  --brand-hover: #2dd4bf;
+  --brand-weak: rgba(20, 184, 166, 0.22);
+  --shadow-soft: 0 10px 30px rgba(2, 6, 23, 0.45);
+  --shadow-strong: 0 18px 40px rgba(2, 6, 23, 0.55);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -48,6 +64,12 @@ body {
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
+body.dark-mode .topbar {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(2, 6, 23, 0.62);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.55);
+}
+
 .topbar h1 {
   margin: 0;
   font-size: 19px;
@@ -59,6 +81,12 @@ body {
   color: transparent;
 }
 
+body.dark-mode .topbar h1 {
+  background: linear-gradient(90deg, #e2e8f0 0%, #2dd4bf 60%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
 .topbar nav {
   display: inline-flex;
   gap: 6px;
@@ -67,6 +95,11 @@ body {
   border: 1px solid rgba(15, 23, 42, 0.1);
   background: rgba(255, 255, 255, 0.75);
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+body.dark-mode .topbar nav {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(15, 23, 42, 0.75);
 }
 
 .topbar nav button {
@@ -83,10 +116,25 @@ body {
   color: #334155;
 }
 
+body.dark-mode .topbar nav button.ghost {
+  color: #cbd5e1;
+  opacity: 0.82;
+}
+
 .topbar nav button.active {
   background: linear-gradient(135deg, #0f766e, #0e7490);
   color: #ffffff;
   box-shadow: 0 8px 16px rgba(14, 116, 144, 0.35);
+}
+
+body.dark-mode .topbar nav button.active {
+  opacity: 1;
+  background: linear-gradient(135deg, #2dd4bf, #0ea5e9);
+  color: #041318;
+  border: 1px solid rgba(226, 232, 240, 0.82);
+  box-shadow:
+    0 0 0 2px rgba(45, 212, 191, 0.26),
+    0 10px 18px rgba(2, 6, 23, 0.55);
 }
 
 .container {
@@ -147,6 +195,24 @@ textarea {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea {
+  color: var(--ink);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.7);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
@@ -182,6 +248,10 @@ button.ghost {
   border: 1px solid var(--line);
   color: var(--ink);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+}
+
+body.dark-mode button.ghost {
+  background: rgba(30, 41, 59, 0.74);
 }
 
 button.danger {
@@ -224,6 +294,10 @@ button.small {
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
+body.dark-mode .task-item {
+  background: rgba(15, 23, 42, 0.72);
+}
+
 .task-item:hover {
   border-color: rgba(15, 118, 110, 0.48);
   box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
@@ -232,6 +306,10 @@ button.small {
 .task-item.selected {
   border-color: var(--brand);
   background: linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%);
+}
+
+body.dark-mode .task-item.selected {
+  background: linear-gradient(180deg, rgba(20, 184, 166, 0.28) 0%, rgba(15, 23, 42, 0.82) 100%);
 }
 
 .start-dock {
@@ -249,6 +327,11 @@ button.small {
   box-shadow: var(--shadow-strong);
   backdrop-filter: blur(10px);
   overflow: hidden;
+}
+
+body.dark-mode .start-dock {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.74);
 }
 
 .start-dock::before {
@@ -285,6 +368,30 @@ button:disabled {
   border-radius: 14px;
   padding: 10px;
   background: rgba(255, 255, 255, 0.95);
+
+.check-grid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+}
+
+.check-grid label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .check-grid {
+    grid-template-columns: 1fr;
+  }
+}
+}
+
+body.dark-mode .kpi {
+  background: rgba(15, 23, 42, 0.76);
 }
 
 .kpi strong {
