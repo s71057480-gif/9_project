@@ -1095,26 +1095,26 @@ function showTutorialStep() {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   
-  // 모달 위치 계산 (타겟 요소 옆에 배치)
+  // 모달 위치 계산 (타겟 요소 아래에 배치)
   if (targetRect && !step.fullScreen) {
     const modalRect = modal.getBoundingClientRect();
     const padding = 16;
-    let left = targetRect.right + padding;
-    let top = targetRect.top;
+    let left = targetRect.left + (targetRect.width - modalRect.width) / 2;
+    let top = targetRect.bottom + padding;
     
-    // 화면 오른쪽을 벗어나면 왼쪽에 배치
+    // 화면 왼쪽을 벗어나면 조정
+    if (left < padding) {
+      left = padding;
+    }
+    
+    // 화면 오른쪽을 벗어나면 조정
     if (left + modalRect.width > window.innerWidth - padding) {
-      left = targetRect.left - modalRect.width - padding;
+      left = window.innerWidth - modalRect.width - padding;
     }
     
-    // 화면 위쪽을 벗어나면 아래로 조정
-    if (top < padding) {
-      top = padding;
-    }
-    
-    // 화면 아래쪽을 벗어나면 위로 조정
+    // 화면 아래쪽을 벗어나면 위에 배치
     if (top + modalRect.height > window.innerHeight - padding) {
-      top = window.innerHeight - modalRect.height - padding;
+      top = targetRect.top - modalRect.height - padding;
     }
     
     modal.style.left = left + "px";
