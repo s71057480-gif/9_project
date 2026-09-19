@@ -42,14 +42,15 @@ document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
 const tutorialStyles = `
 .tutorial-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.6); z-index: 2000; cursor: pointer;
+  background: rgba(0, 0, 0, 0.3); z-index: 2000; cursor: pointer;
 }
 .tutorial-overlay.full-screen {
   display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
 }
 .tutorial-highlight {
   position: absolute; border: 3px solid #0f766e;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
   border-radius: 8px; z-index: 2001;
 }
 .tutorial-modal {
