@@ -49,7 +49,7 @@ const tutorialStyles = `
   background: rgba(0, 0, 0, 0.3);
 }
 .tutorial-highlight {
-  position: absolute; border: 3px solid #0f766e;
+  position: fixed; border: 3px solid #0f766e;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
   border-radius: 8px; z-index: 2001;
 }
@@ -57,7 +57,7 @@ const tutorialStyles = `
   background: white; border-radius: 12px; padding: 24px;
   max-width: 450px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   z-index: 2002; animation: slideUp 0.3s ease-out;
-  position: absolute;
+  position: fixed;
 }
 .tutorial-overlay.full-screen .tutorial-modal {
   position: relative; top: auto; left: auto;
@@ -1061,7 +1061,7 @@ function showTutorialStep() {
       targetRect = target.getBoundingClientRect();
       const highlight = document.createElement("div");
       highlight.className = "tutorial-highlight";
-      highlight.style.top = targetRect.top + window.scrollY + "px";
+      highlight.style.top = targetRect.top + "px";
       highlight.style.left = targetRect.left + "px";
       highlight.style.width = targetRect.width + "px";
       highlight.style.height = targetRect.height + "px";
@@ -1096,12 +1096,30 @@ function showTutorialStep() {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   
-  // 모달 위치 계산 (타겟 요소 아래에 배치)
-  if (targetRect && !step.fullScreen) {
+  // 타겟 위치 업데이트 함수
+  const updateTargetPosition = () => {
+    const step = TUTORIAL_STEPS[tutorialState.currentStep];
+    if (!step || step.fullScreen) return;
+    
+    const target = document.querySelector(step.target);
+    if (!target) return;
+    
+    const rect = target.getBoundingClientRect();
+    const highlight = overlay.querySelector(".tutorial-highlight");
+    
+    // 하이라이트 위치 업데이트 (viewport 상대)
+    if (highlight) {
+      highlight.style.top = rect.top + "px";
+      highlight.style.left = rect.left + "px";
+      highlight.style.width = rect.width + "px";
+      highlight.style.height = rect.height + "px";
+    }
+    
+    // 모달 위치 업데이트
     const modalRect = modal.getBoundingClientRect();
     const padding = 16;
-    let left = targetRect.left + (targetRect.width - modalRect.width) / 2;
-    let top = targetRect.bottom + padding;
+    let left = rect.left + (rect.width - modalRect.width) / 2;
+    let top = rect.bottom + padding;
     
     // 화면 왼쪽을 벗어나면 조정
     if (left < padding) {
@@ -1115,12 +1133,25 @@ function showTutorialStep() {
     
     // 화면 아래쪽을 벗어나면 위에 배치
     if (top + modalRect.height > window.innerHeight - padding) {
-      top = targetRect.top - modalRect.height - padding;
+      top = rect.top - modalRect.height - padding;
     }
     
     modal.style.left = left + "px";
     modal.style.top = top + "px";
+  };
+  
+  // 모달 위치 계산 (타겟 요소 아래에 배치)
+  if (targetRect && !step.fullScreen) {
+    updateTargetPosition();
   }
+
+  // 스크롤 이벤트 리스너 추가
+  const scrollListener = () => {
+    if (tutorialState.active) {
+      updateTargetPosition();
+    }
+  };
+  window.addEventListener("scroll", scrollListener);
 
   // 이벤트 리스너
   if (!isFirst) {
@@ -1140,6 +1171,9 @@ function showTutorialStep() {
       nextTutorialStep();
     }
   });
+  
+  // 튜토리얼 종료 시 스크롤 리스너 제거
+  tutorialState.scrollListener = scrollListener;
 }
 
 function nextTutorialStep() {
@@ -1160,6 +1194,12 @@ function endTutorial() {
   tutorialState.active = false;
   const overlay = document.getElementById("tutorial-overlay");
   if (overlay) overlay.remove();
+  
+  // 스크롤 리스너 제거
+  if (tutorialState.scrollListener) {
+    window.removeEventListener("scroll", tutorialState.scrollListener);
+    tutorialState.scrollListener = null;
+  }
 }
 
 function saveTaskEdit() {
