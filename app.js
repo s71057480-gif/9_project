@@ -858,7 +858,7 @@ function loadState() {
     },
     tasks: [],
     sessions: [],
-    points: 999999,
+    points: 0,
     breakTokens: 0,
     shields: 0,
     pointLedger: [],
