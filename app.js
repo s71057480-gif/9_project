@@ -37,6 +37,44 @@ document.getElementById("nav-report").addEventListener("click", () => {
   showScreen("report");
 });
 document.getElementById("theme-toggle").addEventListener("click", toggleTheme);
+
+// 튜토리얼 CSS 동적 추가
+const tutorialStyles = `
+.tutorial-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6); z-index: 2000; cursor: pointer;
+}
+.tutorial-overlay.full-screen {
+  display: flex; align-items: center; justify-content: center;
+}
+.tutorial-highlight {
+  position: absolute; border: 3px solid #0f766e;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  border-radius: 8px; z-index: 2001;
+}
+.tutorial-modal {
+  background: white; border-radius: 12px; padding: 24px;
+  max-width: 450px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  z-index: 2002; animation: slideUp 0.3s ease-out;
+}
+.tutorial-overlay.full-screen .tutorial-modal {
+  position: relative;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.tutorial-content h2 { color: #0f766e; margin-bottom: 12px; }
+.tutorial-content p { color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+.tutorial-progress { font-size: 12px; color: #94a3b8; margin-bottom: 16px; }
+.dark-mode .tutorial-modal { background: #1e293b; color: #e2e8f0; }
+.dark-mode .tutorial-content h2 { color: #06b6d4; }
+.dark-mode .tutorial-content p { color: #cbd5e1; }
+`;
+const styleEl = document.createElement('style');
+styleEl.textContent = tutorialStyles;
+document.head.appendChild(styleEl);
+
 window.addEventListener("beforeunload", (event) => {
   if (!state.activeSession) return;
   event.preventDefault();
