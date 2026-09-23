@@ -15,7 +15,10 @@ const TUTORIAL_STEPS = [
   { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["[id='buy-break']", "[id='buy-shield']"], screen: "home", renderHome: true },
   { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']", screen: "home" },
   { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", target: ".kpis", screen: "report" },
-  { id: 12, title: "모든 기능을 배웠습니다!", description: "이제 할 일을 추가해서 시작해보세요!\n홈 화면에서 언제든 '튜토리얼' 버튼으로 다시 볼 수 있습니다.", fullScreen: true, screen: "home" },
+  { id: 12, title: "실패 사유 분석", description: "세션 실패의 주요 사유를 확인할 수 있습니다.\n실패 패턴을 파악해서 개선해보세요.", target: "#fail-section", screen: "report" },
+  { id: 13, title: "포인트 내역", description: "포인트를 언제, 어떻게 얻거나 사용했는지\n상세히 확인할 수 있습니다.", target: "#ledger-section", screen: "report" },
+  { id: 14, title: "다음 주 목표 설정", description: "다음 주의 세션 완료 목표를 설정할 수 있습니다.\n목표를 정해서 동기부여를 높여보세요!", target: "#goal-section", screen: "report" },
+  { id: 15, title: "모든 기능을 배웠습니다!", description: "이제 할 일을 추가해서 시작해보세요!\n홈 화면에서 언제든 '튜토리얼' 버튼으로 다시 볼 수 있습니다.", fullScreen: true, screen: "home" },
 ];
 
 const state = loadState();
@@ -743,7 +746,7 @@ function renderReport() {
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="fail-section">
       <h3 style="margin-top:0;">실패 사유 상위</h3>
       ${
         topFails.length
@@ -752,7 +755,7 @@ function renderReport() {
       }
     </div>
 
-    <div class="card">
+    <div class="card" id="ledger-section">
       <h3 style="margin-top:0;">포인트 내역</h3>
       ${
         recentLedger.length
@@ -763,7 +766,7 @@ function renderReport() {
       }
     </div>
 
-    <div class="card">
+    <div class="card" id="goal-section">
       <h3 style="margin-top:0;">다음 주 목표</h3>
       <div class="row">
         <input id="next-week-goal-input" type="number" value="${state.settings.nextWeekGoal || ""}" placeholder="목표 입력" style="max-width:140px;" />
