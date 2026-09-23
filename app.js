@@ -3,19 +3,19 @@ const FAIL_PENALTY_POINTS = 5;
 const THEME_KEY = "mission_possible_theme";
 
 const TUTORIAL_STEPS = [
-  { id: 0, title: "미션 파서블에 오신 것을 환영합니다!", description: "미루기를 방지하고 집중력을 높이는 앱입니다.\n단계별로 모든 기능을 배워보세요!", fullScreen: true },
-  { id: 1, title: "포인트 시스템", description: "세션을 완료하면 포인트를 얻습니다.\n포인트로 휴식권과 실드를 구매할 수 있어요.", target: ".muted" },
-  { id: 2, title: "할 일 추가", description: "할 일 제목과 예상 시간을 입력한 후\n'추가' 버튼을 클릭하세요.", target: "#task-title" },
-  { id: 3, title: "할 일 선택 및 시작", description: "오늘 목록에서 할 일을 선택한 후\n'지금 시작' 버튼을 눌러 집중 세션을 시작하세요.", fullScreen: true },
-  { id: 4, title: "오늘 할 일", description: "추가한 할 일들이 여기에 표시됩니다.\n할 일을 선택해서 세션을 시작할 수 있어요.", target: "#task-list" },
-  { id: 5, title: "세션 시작", description: "'지금 시작' 버튼을 클릭하면\n집중 모드가 시작됩니다.", target: "#start-session" },
-  { id: 6, title: "집중 모드", description: "타이머가 시작되고 설정한 시간 동안\n집중할 수 있습니다.", target: "#timer-view" },
-  { id: 7, title: "세션 완료 알림", description: "시간이 끝나면 소리와 함께 알림창이 나타나\n결과를 저장할 수 있습니다.", fullScreen: true },
-  { id: 8, title: "포인트 획득", description: "세션을 완료하면 포인트를 획득합니다!\n결과를 저장하면 홈으로 돌아갑니다.", target: "#result-type" },
-  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", target: "[id='buy-break']" },
-  { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']" },
-  { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", fullScreen: true },
-  { id: 12, title: "모든 기능을 배웠습니다!", description: "이제 할 일을 추가해서 시작해보세요!\n홈 화면에서 언제든 '튜토리얼' 버튼으로 다시 볼 수 있습니다.", fullScreen: true },
+  { id: 0, title: "미션 파서블에 오신 것을 환영합니다!", description: "미루기를 방지하고 집중력을 높이는 앱입니다.\n단계별로 모든 기능을 배워보세요!", fullScreen: true, screen: "home" },
+  { id: 1, title: "포인트 시스템", description: "세션을 완료하면 포인트를 얻습니다.\n포인트로 휴식권과 실드를 구매할 수 있어요.", target: ".muted", screen: "home" },
+  { id: 2, title: "할 일 추가", description: "할 일 제목과 예상 시간을 입력한 후\n'추가' 버튼을 클릭하세요.", target: "#task-title", screen: "home" },
+  { id: 3, title: "할 일 선택 및 시작", description: "오늘 목록에서 할 일을 선택한 후\n할 일을 누르고 '지금 시작' 버튼을 눌러 세션을 시작하세요.", target: "#task-list", screen: "home" },
+  { id: 4, title: "오늘 할 일", description: "추가한 할 일들이 여기에 표시됩니다.\n할 일을 선택해서 세션을 시작할 수 있어요.", target: "#task-list", screen: "home" },
+  { id: 5, title: "세션 시작", description: "'지금 시작' 버튼을 클릭하면\n집중 모드가 시작됩니다.", target: "#start-session", screen: "home" },
+  { id: 6, title: "집중 모드", description: "타이머가 시작되고 설정한 시간 동안\n집중할 수 있습니다.", target: "#timer-view", screen: "focus" },
+  { id: 7, title: "세션 완료 알림", description: "시간이 끝나면 소리와 함께 알림창이 나타나\n결과를 저장할 수 있습니다.", fullScreen: true, screen: "focus" },
+  { id: 8, title: "포인트 획득", description: "세션을 완료하면 포인트를 획득합니다!\n결과를 저장하면 홈으로 돌아갑니다.", target: "#result-type", screen: "result" },
+  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["[id='buy-break']", "[id='buy-shield']"], screen: "home" },
+  { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']", screen: "home" },
+  { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", fullScreen: true, screen: "report" },
+  { id: 12, title: "모든 기능을 배웠습니다!", description: "이제 할 일을 추가해서 시작해보세요!\n홈 화면에서 언제든 '튜토리얼' 버튼으로 다시 볼 수 있습니다.", fullScreen: true, screen: "home" },
 ];
 
 const state = loadState();
@@ -1045,6 +1045,20 @@ function showTutorialStep() {
     return;
   }
 
+  // 화면 전환 (step.screen이 지정된 경우)
+  if (step.screen) {
+    if (step.screen === "focus" && state.selectedTaskId && !state.activeSession) {
+      // 포커스 화면으로 이동하기 전에 세션 시작
+      startFocus(state.selectedTaskId);
+      // startFocus가 showScreen을 호출하므로 나머지 로직은 계속 진행
+    } else if (step.screen === "report") {
+      renderReport();
+      showScreen(step.screen);
+    } else {
+      showScreen(step.screen);
+    }
+  }
+
   // 기존 오버레이 제거
   const existing = document.getElementById("tutorial-overlay");
   if (existing) existing.remove();
@@ -1054,15 +1068,32 @@ function showTutorialStep() {
   overlay.id = "tutorial-overlay";
   overlay.className = "tutorial-overlay";
 
-  let targetRect = null;
+  let targetRects = [];
   
   // 풀스크린 모드 또는 타겟 요소 하이라이트
   if (step.fullScreen) {
     overlay.classList.add("full-screen");
+  } else if (step.targets && Array.isArray(step.targets)) {
+    // 다중 타겟 하이라이트
+    step.targets.forEach(targetSelector => {
+      const target = document.querySelector(targetSelector);
+      if (target) {
+        const targetRect = target.getBoundingClientRect();
+        targetRects.push(targetRect);
+        const highlight = document.createElement("div");
+        highlight.className = "tutorial-highlight";
+        highlight.style.top = targetRect.top + "px";
+        highlight.style.left = targetRect.left + "px";
+        highlight.style.width = targetRect.width + "px";
+        highlight.style.height = targetRect.height + "px";
+        overlay.appendChild(highlight);
+      }
+    });
   } else if (step.target) {
     const target = document.querySelector(step.target);
     if (target) {
-      targetRect = target.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      targetRects.push(targetRect);
       const highlight = document.createElement("div");
       highlight.className = "tutorial-highlight";
       highlight.style.top = targetRect.top + "px";
@@ -1105,47 +1136,52 @@ function showTutorialStep() {
     const step = TUTORIAL_STEPS[tutorialState.currentStep];
     if (!step || step.fullScreen) return;
     
-    const target = document.querySelector(step.target);
-    if (!target) return;
+    const highlights = overlay.querySelectorAll(".tutorial-highlight");
+    const targetSelectors = step.targets && Array.isArray(step.targets) ? step.targets : (step.target ? [step.target] : []);
     
-    const rect = target.getBoundingClientRect();
-    const highlight = overlay.querySelector(".tutorial-highlight");
+    highlights.forEach((highlight, idx) => {
+      if (idx < targetSelectors.length) {
+        const target = document.querySelector(targetSelectors[idx]);
+        if (target) {
+          const rect = target.getBoundingClientRect();
+          highlight.style.top = rect.top + "px";
+          highlight.style.left = rect.left + "px";
+          highlight.style.width = rect.width + "px";
+          highlight.style.height = rect.height + "px";
+        }
+      }
+    });
     
-    // 하이라이트 위치 업데이트 (viewport 상대)
-    if (highlight) {
-      highlight.style.top = rect.top + "px";
-      highlight.style.left = rect.left + "px";
-      highlight.style.width = rect.width + "px";
-      highlight.style.height = rect.height + "px";
+    // 모달 위치 업데이트 (첫 번째 타겟 기준)
+    if (targetRects.length > 0) {
+      const rect = targetRects[0];
+      const modalRect = modal.getBoundingClientRect();
+      const padding = 16;
+      let left = rect.left + (rect.width - modalRect.width) / 2;
+      let top = rect.bottom + padding;
+      
+      // 화면 왼쪽을 벗어나면 조정
+      if (left < padding) {
+        left = padding;
+      }
+      
+      // 화면 오른쪽을 벗어나면 조정
+      if (left + modalRect.width > window.innerWidth - padding) {
+        left = window.innerWidth - modalRect.width - padding;
+      }
+      
+      // 화면 아래쪽을 벗어나면 위에 배치
+      if (top + modalRect.height > window.innerHeight - padding) {
+        top = rect.top - modalRect.height - padding;
+      }
+      
+      modal.style.left = left + "px";
+      modal.style.top = top + "px";
     }
-    
-    // 모달 위치 업데이트
-    const modalRect = modal.getBoundingClientRect();
-    const padding = 16;
-    let left = rect.left + (rect.width - modalRect.width) / 2;
-    let top = rect.bottom + padding;
-    
-    // 화면 왼쪽을 벗어나면 조정
-    if (left < padding) {
-      left = padding;
-    }
-    
-    // 화면 오른쪽을 벗어나면 조정
-    if (left + modalRect.width > window.innerWidth - padding) {
-      left = window.innerWidth - modalRect.width - padding;
-    }
-    
-    // 화면 아래쪽을 벗어나면 위에 배치
-    if (top + modalRect.height > window.innerHeight - padding) {
-      top = rect.top - modalRect.height - padding;
-    }
-    
-    modal.style.left = left + "px";
-    modal.style.top = top + "px";
   };
   
   // 모달 위치 계산 (타겟 요소 아래에 배치)
-  if (targetRect && !step.fullScreen) {
+  if (targetRects.length > 0 && !step.fullScreen) {
     updateTargetPosition();
   }
 
