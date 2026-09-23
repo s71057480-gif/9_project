@@ -404,7 +404,11 @@ function startFocus(taskId) {
   saveState();
   renderFocus();
   showScreen("focus");
-  startTimer();
+  
+  // 튜토리얼 중에는 타이머 시작 안 함
+  if (!tutorialState.active) {
+    startTimer();
+  }
 }
 
 function renderFocus() {
