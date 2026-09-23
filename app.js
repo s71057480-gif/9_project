@@ -8,13 +8,13 @@ const TUTORIAL_STEPS = [
   { id: 2, title: "할 일 추가", description: "할 일 제목과 예상 시간을 입력한 후\n'추가' 버튼을 클릭하세요.", target: "#task-title", screen: "home" },
   { id: 3, title: "할 일 선택 및 시작", description: "오늘 목록에서 할 일을 선택한 후\n할 일을 누르고 '지금 시작' 버튼을 눌러 세션을 시작하세요.", target: "#task-list", screen: "home" },
   { id: 4, title: "오늘 할 일", description: "추가한 할 일들이 여기에 표시됩니다.\n할 일을 선택해서 세션을 시작할 수 있어요.", target: "#task-list", screen: "home" },
-  { id: 5, title: "세션 시작", description: "'지금 시작' 버튼을 클릭하면\n집중 모드가 시작됩니다.", target: "#start-session", screen: "home" },
+  { id: 5, title: "세션 시작", description: "'지금 시작' 버튼을 클릭하면\n집중 모드가 시작됩니다.", target: "#start-selected", screen: "home" },
   { id: 6, title: "집중 모드", description: "타이머가 시작되고 설정한 시간 동안\n집중할 수 있습니다.", target: "#timer-view", screen: "focus" },
   { id: 7, title: "세션 완료 알림", description: "시간이 끝나면 소리와 함께 알림창이 나타나\n결과를 저장할 수 있습니다.", fullScreen: true, screen: "focus" },
   { id: 8, title: "포인트 획득", description: "세션을 완료하면 포인트를 획득합니다!\n결과를 저장하면 홈으로 돌아갑니다.", target: "#result-type", screen: "result" },
-  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["[id='buy-break']", "[id='buy-shield']"], screen: "home" },
+  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["[id='buy-break']", "[id='buy-shield']"], screen: "home", renderHome: true },
   { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']", screen: "home" },
-  { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", fullScreen: true, screen: "report" },
+  { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", target: ".kpis", screen: "report" },
   { id: 12, title: "모든 기능을 배웠습니다!", description: "이제 할 일을 추가해서 시작해보세요!\n홈 화면에서 언제든 '튜토리얼' 버튼으로 다시 볼 수 있습니다.", fullScreen: true, screen: "home" },
 ];
 
@@ -1053,6 +1053,9 @@ function showTutorialStep() {
       // startFocus가 showScreen을 호출하므로 나머지 로직은 계속 진행
     } else if (step.screen === "report") {
       renderReport();
+      showScreen(step.screen);
+    } else if (step.screen === "home") {
+      renderHome();
       showScreen(step.screen);
     } else {
       showScreen(step.screen);
