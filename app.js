@@ -11,7 +11,7 @@ const TUTORIAL_STEPS = [
   { id: 5, title: "세션 시작", description: "'지금 시작' 버튼을 클릭하면\n집중 모드가 시작됩니다.", target: "#start-selected", screen: "home" },
   { id: 6, title: "집중 모드", description: "타이머가 시작되고 설정한 시간 동안\n집중할 수 있습니다.", target: "#timer-view", screen: "focus" },
   { id: 7, title: "세션 완료 알림", description: "시간이 끝나면 소리와 함께 알림창이 나타나\n결과를 저장할 수 있습니다.", fullScreen: true, screen: "focus" },
-  { id: 8, title: "포인트 획득", description: "세션을 완료하면 포인트를 획득합니다!\n결과를 저장하면 홈으로 돌아갑니다.", fullScreen: true, screen: "focus" },
+  { id: 8, title: "포인트 획득", description: "완료하면 10점을 얻어요!\n포기하면 5점을 잃어요.\n결과를 저장하면 홈으로 돌아갑니다.", fullScreen: true, screen: "focus" },
   { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["[id='buy-break']", "[id='buy-shield']"], screen: "home", renderHome: true },
   { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']", screen: "home" },
   { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", target: ".kpis", screen: "report" },
@@ -1149,6 +1149,15 @@ function showTutorialStep() {
     const highlights = overlay.querySelectorAll(".tutorial-highlight");
     const targetSelectors = step.targets && Array.isArray(step.targets) ? step.targets : (step.target ? [step.target] : []);
     
+    // 첫 번째 타겟의 실시간 위치 계산
+    let currentTargetRect = null;
+    if (targetSelectors.length > 0) {
+      const target = document.querySelector(targetSelectors[0]);
+      if (target) {
+        currentTargetRect = target.getBoundingClientRect();
+      }
+    }
+    
     highlights.forEach((highlight, idx) => {
       if (idx < targetSelectors.length) {
         const target = document.querySelector(targetSelectors[idx]);
@@ -1163,12 +1172,14 @@ function showTutorialStep() {
     });
     
     // 모달 위치 업데이트 (첫 번째 타겟 기준)
-    if (targetRects.length > 0) {
-      const rect = targetRects[0];
+    if (currentTargetRect) {
       const modalRect = modal.getBoundingClientRect();
       const padding = 16;
-      let left = rect.left + (rect.width - modalRect.width) / 2;
-      let top = rect.bottom + padding;
+      const gap = 12;
+      
+      // 우선순위: 아래 → 위 → 오른쪽
+      let left = currentTargetRect.left + (currentTargetRect.width - modalRect.width) / 2;
+      let top = currentTargetRect.bottom + gap;
       
       // 화면 왼쪽을 벗어나면 조정
       if (left < padding) {
@@ -1182,7 +1193,7 @@ function showTutorialStep() {
       
       // 화면 아래쪽을 벗어나면 위에 배치
       if (top + modalRect.height > window.innerHeight - padding) {
-        top = rect.top - modalRect.height - padding;
+        top = currentTargetRect.top - modalRect.height - gap;
       }
       
       modal.style.left = left + "px";
@@ -1190,9 +1201,11 @@ function showTutorialStep() {
     }
   };
   
-  // 모달 위치 계산 (타겟 요소 아래에 배치)
+  // 모달 위치 계산 (타겟 요소 아래에 배치) - requestAnimationFrame으로 렌더링 후 계산
   if (targetRects.length > 0 && !step.fullScreen) {
-    updateTargetPosition();
+    requestAnimationFrame(() => {
+      updateTargetPosition();
+    });
   }
 
   // 스크롤 이벤트 리스너 추가
