@@ -1,5 +1,7 @@
 const STORAGE_KEY = "nine_project_mvp_v1";
 const FAIL_PENALTY_POINTS = 5;
+const BREAK_TOKEN_RATIO = 0.2;
+const EARLY_COMPLETE_COST = 50;
 const THEME_KEY = "mission_possible_theme";
 
 const TUTORIAL_STEPS = [
@@ -12,7 +14,7 @@ const TUTORIAL_STEPS = [
   { id: 6, title: "집중 모드", description: "타이머가 시작되고 설정한 시간 동안\n집중할 수 있습니다.", target: "#timer-view", screen: "focus" },
   { id: 7, title: "세션 완료 알림", description: "시간이 끝나면 소리와 함께 알림창이 나타나\n결과를 저장할 수 있습니다.", fullScreen: true, screen: "focus" },
   { id: 8, title: "포인트 획득", description: "완료하면 10점을 얻어요!\n포기하면 5점을 잃어요.\n결과를 저장하면 홈으로 돌아갑니다.", fullScreen: true, screen: "focus" },
-  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["#rest-shield-bar"], lift: true, placement: "below", screen: "home" },
+  { id: 9, title: "휴식권과 실드", description: "휴식권: 집중 중 계획 시간의 20%만큼 타이머를 멈출 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["#rest-shield-bar"], lift: true, placement: "below", screen: "home" },
   { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']", screen: "home" },
   { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", target: ".kpis", screen: "report" },
   { id: 12, title: "실패 사유 분석", description: "세션 실패의 주요 사유를 확인할 수 있습니다.\n실패 패턴을 파악해서 개선해보세요.", target: "#fail-section", screen: "report" },
@@ -428,8 +430,9 @@ function renderFocus() {
   const active = state.activeSession;
   if (!active) return;
   const task = state.tasks.find((t) => t.id === active.taskId);
-  const canEarlyComplete = active.remainingSeconds > 0 && state.points >= 15;
-  const earlyCompleteCost = 15;
+  const canEarlyComplete = active.remainingSeconds > 0 && state.points >= EARLY_COMPLETE_COST;
+  const earlyCompleteCost = EARLY_COMPLETE_COST;
+  const breakActive = (active.breakSecondsLeft || 0) > 0;
 
   screens.focus.innerHTML = `
     <div class="card">
@@ -441,9 +444,11 @@ function renderFocus() {
         <div id="timer-view" class="timer">${formatTime(active.remainingSeconds)}</div>
         <div id="timer-clock" class="timer-clock" style="--pct: ${remainingPercent(active)};"><span id="timer-clock-text" class="timer-clock-text">${remainingClockLabel(active)}</span></div>
       </div>
+      <p id="break-status" class="muted">${breakActive ? `휴식 중 ${formatTime(active.breakSecondsLeft)} 남음 (타이머 정지)` : ""}</p>
       <div class="row">
         <button id="pause-btn" class="ghost">${active.paused ? "재개" : "일시정지"}</button>
-        <button id="complete-btn" ${active.remainingSeconds > 0 ? "disabled title=\"시간이 끝나야 완료할 수 있습니다. 15P를 사용해 조기완료하세요.\"" : ""}>완료</button>
+        <button id="break-btn" class="ghost" ${breakActive || state.breakTokens < 1 ? "disabled" : ""}>휴식권 사용 (${Math.round(breakTokenSeconds(active) / 60)}분 정지, 보유 ${state.breakTokens})</button>
+        <button id="complete-btn"  ${active.remainingSeconds > 0 ? `disabled title="시간이 끝나야 완료할 수 있습니다. ${EARLY_COMPLETE_COST}P를 사용해 조기완료하세요."` : ""}>완료</button>
         <button id="fail-btn" class="danger">포기/실패</button>
       </div>
       ${
@@ -468,14 +473,21 @@ function renderFocus() {
     saveState();
     renderFocus();
   });
+  document.getElementById("break-btn").addEventListener("click", () => {
+    if (state.breakTokens < 1 || (active.breakSecondsLeft || 0) > 0) return;
+    state.breakTokens -= 1;
+    active.breakSecondsLeft = breakTokenSeconds(active);
+    saveState();
+    renderFocus();
+  });
   document.getElementById("complete-btn").addEventListener("click", () => finishSession("success"));
   document.getElementById("fail-btn").addEventListener("click", () => finishSession("fail"));
   
   const earlyCompleteBtn = document.getElementById("early-complete-btn");
   if (earlyCompleteBtn) {
     earlyCompleteBtn.addEventListener("click", () => {
-      if (state.points >= 15) {
-        state.points -= 15;
+      if (state.points >= EARLY_COMPLETE_COST) {
+        state.points -= EARLY_COMPLETE_COST;
         active.remainingSeconds = 0; // 남은 시간을 0으로 설정해 완료 가능하게
         saveState();
         finishSession("success");
@@ -492,6 +504,10 @@ function remainingPercent(active) {
   return Math.max(0, Math.min(100, (active.remainingSeconds / total) * 100));
 }
 
+function breakTokenSeconds(active) {
+  return Math.round((active.plannedMinutes || 0) * 60 * BREAK_TOKEN_RATIO);
+}
+
 function remainingClockLabel(active) {
   return formatTime(active.remainingSeconds);
 }
@@ -504,6 +520,23 @@ function startTimer() {
 
     if (active.remainingSeconds <= 0) {
       finishByTimer();
+      return;
+    }
+
+    // 휴식권 사용 중에는 남은 시간을 줄이지 않고 휴식 시간만 줄입니다.
+    if ((active.breakSecondsLeft || 0) > 0) {
+      active.breakSecondsLeft -= 1;
+      if (active.breakSecondsLeft <= 0) {
+        active.breakSecondsLeft = 0;
+        saveState();
+        renderFocus();
+        return;
+      }
+      const breakStatus = document.getElementById("break-status");
+      if (breakStatus) {
+        breakStatus.textContent = `휴식 중 ${formatTime(active.breakSecondsLeft)} 남음 (타이머 정지)`;
+      }
+      saveState();
       return;
     }
 
@@ -680,7 +713,7 @@ function showResultScreen(presetResult) {
 
 function finishSession(presetResult) {
   if (presetResult === "success" && state.activeSession && state.activeSession.remainingSeconds > 0) {
-    alert("남은 시간이 있어 15P를 사용해 조기완료하세요.");
+    alert(`남은 시간이 있어 ${EARLY_COMPLETE_COST}P를 사용해 조기완료하세요.`);
     renderFocus();
     return;
   }
