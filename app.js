@@ -6,13 +6,13 @@ const TUTORIAL_STEPS = [
   { id: 0, title: "미션 파서블에 오신 것을 환영합니다!", description: "미루기를 방지하고 집중력을 높이는 앱입니다.\n단계별로 모든 기능을 배워보세요!", fullScreen: true, screen: "home" },
   { id: 1, title: "포인트 시스템", description: "세션을 완료하면 포인트를 얻습니다.\n포인트로 휴식권과 실드를 구매할 수 있어요.", target: ".muted", screen: "home" },
   { id: 2, title: "할 일 추가", description: "할 일 제목과 예상 시간을 입력한 후\n'추가' 버튼을 클릭하세요.", target: "#task-title", screen: "home" },
-  { id: 3, title: "할 일 선택 및 시작", description: "오늘 목록에서 할 일을 선택한 후\n할 일을 누르고 '지금 시작' 버튼을 눌러 세션을 시작하세요.", target: "#task-list", screen: "home" },
-  { id: 4, title: "오늘 할 일", description: "추가한 할 일들이 여기에 표시됩니다.\n할 일을 선택해서 세션을 시작할 수 있어요.", target: "#task-list", screen: "home" },
+  { id: 3, title: "할 일 선택 및 시작", description: "오늘 목록에서 할 일을 선택한 후\n할 일을 누르고 '지금 시작' 버튼을 눌러 세션을 시작하세요.", targets: ["#today-list-card", ".start-dock"], lift: true, screen: "home" },
+  { id: 4, title: "오늘 할 일", description: "추가한 할 일들이 여기에 표시됩니다.\n할 일을 선택해서 세션을 시작할 수 있어요.", target: "#today-list-card", screen: "home" },
   { id: 5, title: "세션 시작", description: "'지금 시작' 버튼을 클릭하면\n집중 모드가 시작됩니다.", target: "#start-selected", screen: "home" },
   { id: 6, title: "집중 모드", description: "타이머가 시작되고 설정한 시간 동안\n집중할 수 있습니다.", target: "#timer-view", screen: "focus" },
   { id: 7, title: "세션 완료 알림", description: "시간이 끝나면 소리와 함께 알림창이 나타나\n결과를 저장할 수 있습니다.", fullScreen: true, screen: "focus" },
   { id: 8, title: "포인트 획득", description: "완료하면 10점을 얻어요!\n포기하면 5점을 잃어요.\n결과를 저장하면 홈으로 돌아갑니다.", fullScreen: true, screen: "focus" },
-  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["[id='buy-break']", "[id='buy-shield']"], screen: "home", renderHome: true },
+  { id: 9, title: "휴식권과 실드", description: "휴식권: 세션을 건너뛸 수 있습니다\n실드: 실패해도 포인트를 잃지 않습니다", targets: ["#rest-shield-bar"], lift: true, placement: "below", screen: "home" },
   { id: 10, title: "기록 보기", description: "상단의 '기록' 탭에서\n과거 세션들을 확인할 수 있습니다.", target: "[id='nav-report']", screen: "home" },
   { id: 11, title: "세션 기록", description: "완료된 세션들의 통계와 분석을 볼 수 있습니다.\n우선순위별, 결과별로 필터링할 수 있어요.", target: ".kpis", screen: "report" },
   { id: 12, title: "실패 사유 분석", description: "세션 실패의 주요 사유를 확인할 수 있습니다.\n실패 패턴을 파악해서 개선해보세요.", target: "#fail-section", screen: "report" },
@@ -59,6 +59,19 @@ const tutorialStyles = `
   position: fixed; border: 3px solid #0f766e;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
   border-radius: 8px; z-index: 2001;
+}
+.tutorial-lift {
+  position: relative; z-index: 2001;
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 0 0 3px #0f766e, 0 0 20px 6px rgba(15, 118, 110, 0.6);
+  border-radius: 8px;
+}
+body.dark-mode .tutorial-lift {
+  background: #0f172a !important;
+}
+.tutorial-lift.start-dock {
+  position: sticky;
 }
 .tutorial-modal {
   background: white; border-radius: 12px; padding: 24px;
@@ -202,7 +215,7 @@ function renderHome() {
         <span class="badge">완료 ${completedToday}/${state.settings.dailyGoal || 2}</span>
       </div>
       <p class="muted">포인트: <strong>${state.points}</strong>P | 휴식권: ${state.breakTokens} | 실드: ${state.shields}</p>
-      <div class="row">
+      <div class="row" id="rest-shield-bar">
         <button id="buy-break" class="small ghost">30P로 휴식권 구매</button>
         <button id="buy-shield" class="small ghost">40P로 실드 구매</button>
         <button id="start-tutorial" class="small ghost">📖 튜토리얼</button>
@@ -235,7 +248,7 @@ function renderHome() {
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="today-list-card">
       <h3 style="margin-top:0;">오늘 목록</h3>
       <div id="task-list"></div>
     </div>
@@ -424,7 +437,10 @@ function renderFocus() {
       <p class="muted">현재 할 일</p>
       <strong>${escapeHtml(task ? task.title : "삭제된 할 일")}</strong>
       <p class="muted">집중 중에는 다른 화면으로 이동할 수 없습니다.</p>
-      <div id="timer-view" class="timer">${formatTime(active.remainingSeconds)}</div>
+      <div class="timer-wrap">
+        <div id="timer-view" class="timer">${formatTime(active.remainingSeconds)}</div>
+        <div id="timer-clock" class="timer-clock" style="--pct: ${remainingPercent(active)};"><span id="timer-clock-text" class="timer-clock-text">${remainingClockLabel(active)}</span></div>
+      </div>
       <div class="row">
         <button id="pause-btn" class="ghost">${active.paused ? "재개" : "일시정지"}</button>
         <button id="complete-btn" ${active.remainingSeconds > 0 ? "disabled title=\"시간이 끝나야 완료할 수 있습니다. 15P를 사용해 조기완료하세요.\"" : ""}>완료</button>
@@ -470,6 +486,16 @@ function renderFocus() {
   }
 }
 
+function remainingPercent(active) {
+  const total = (active.plannedMinutes || 0) * 60;
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, (active.remainingSeconds / total) * 100));
+}
+
+function remainingClockLabel(active) {
+  return formatTime(active.remainingSeconds);
+}
+
 function startTimer() {
   clearInterval(timerId);
   timerId = setInterval(() => {
@@ -491,6 +517,12 @@ function startTimer() {
     const timerView = document.getElementById("timer-view");
     if (timerView) {
       timerView.textContent = formatTime(active.remainingSeconds);
+    }
+    const timerClock = document.getElementById("timer-clock");
+    if (timerClock) {
+      timerClock.style.setProperty("--pct", remainingPercent(active));
+      const clockText = document.getElementById("timer-clock-text");
+      if (clockText) clockText.textContent = remainingClockLabel(active);
     }
     saveState();
   }, 1000);
@@ -1040,9 +1072,41 @@ function setNextWeekGoal() {
 
 // 튜토리얼 함수들
 function startTutorial() {
+  removeTutorialTempTasks();
   tutorialState.active = true;
   tutorialState.currentStep = 0;
   showTutorialStep();
+}
+
+function addTutorialTempTask() {
+  const task = {
+    id: uid(),
+    title: "튜토리얼 임시 할 일",
+    estimatedMinutes: 25,
+    priority: "보통",
+    status: "todo",
+    createdAt: new Date().toISOString(),
+    scheduledDate: isoDate(new Date()),
+    tutorialTemp: true,
+  };
+  state.tasks.push(task);
+  state.selectedTaskId = task.id;
+  saveState();
+  return task;
+}
+
+function removeTutorialTempTasks() {
+  const tempIds = state.tasks.filter((t) => t.tutorialTemp).map((t) => t.id);
+  if (!tempIds.length) return;
+  state.tasks = state.tasks.filter((t) => !t.tutorialTemp);
+  if (tempIds.includes(state.selectedTaskId)) state.selectedTaskId = null;
+  const sessionWasTemp = state.activeSession && tempIds.includes(state.activeSession.taskId);
+  if (sessionWasTemp) state.activeSession = null;
+  saveState();
+  if (sessionWasTemp) {
+    renderHome();
+    showScreen("home");
+  }
 }
 
 function showTutorialStep() {
@@ -1054,8 +1118,15 @@ function showTutorialStep() {
 
   // 화면 전환 (step.screen이 지정된 경우)
   if (step.screen) {
-    if (step.screen === "focus" && state.selectedTaskId && !state.activeSession) {
-      // 포커스 화면으로 이동하기 전에 세션 시작
+    // 집중 모드 튜토리얼이 끝난 뒤 다른 화면으로 넘어갈 때 임시 세션을 정리
+    if (step.screen !== "focus" && state.activeSession) {
+      removeTutorialTempTasks();
+    }
+    if (step.screen === "focus" && !state.activeSession) {
+      // 집중 모드 튜토리얼용 임시 할 일을 만들어 세션 시작
+      if (!state.selectedTaskId || !state.tasks.some((t) => t.id === state.selectedTaskId)) {
+        addTutorialTempTask();
+      }
       startFocus(state.selectedTaskId);
       // startFocus가 showScreen을 호출하므로 나머지 로직은 계속 진행
     } else if (step.screen === "report") {
@@ -1072,6 +1143,7 @@ function showTutorialStep() {
   // 기존 오버레이 제거
   const existing = document.getElementById("tutorial-overlay");
   if (existing) existing.remove();
+  clearTutorialLifts();
 
   // 오버레이 생성
   const overlay = document.createElement("div");
@@ -1083,6 +1155,12 @@ function showTutorialStep() {
   // 풀스크린 모드 또는 타겟 요소 하이라이트
   if (step.fullScreen) {
     overlay.classList.add("full-screen");
+  } else if (step.lift && step.targets) {
+    // 타겟을 오버레이 위로 올려 어둡게 가리지 않음
+    step.targets.forEach(targetSelector => {
+      const target = document.querySelector(targetSelector);
+      if (target) target.classList.add("tutorial-lift");
+    });
   } else if (step.targets && Array.isArray(step.targets)) {
     // 다중 타겟 하이라이트
     step.targets.forEach(targetSelector => {
@@ -1138,13 +1216,32 @@ function showTutorialStep() {
     </div>
   `;
 
-  overlay.appendChild(modal);
+  if (step.lift) {
+    // 올려진 바(z-index 2001)보다 위에 보이도록 모달을 오버레이 밖에 붙임
+    modal.id = "tutorial-modal-lift";
+    document.body.appendChild(modal);
+  } else {
+    overlay.appendChild(modal);
+  }
   document.body.appendChild(overlay);
   
   // 타겟 위치 업데이트 함수
   const updateTargetPosition = () => {
     const step = TUTORIAL_STEPS[tutorialState.currentStep];
     if (!step || step.fullScreen) return;
+
+    // 올려진 타겟 단계는 설명 모달을 타겟 위(기본) 또는 아래(placement: "below")에 배치
+    if (step.lift) {
+      const modalRect = modal.getBoundingClientRect();
+      const liftRect = document.querySelector(step.targets[0])?.getBoundingClientRect();
+      modal.style.left = Math.max(16, (window.innerWidth - modalRect.width) / 2) + "px";
+      modal.style.bottom = "auto";
+      const top = step.placement === "below"
+        ? (liftRect ? liftRect.bottom : 0) + 16
+        : (liftRect ? liftRect.top : window.innerHeight) - modalRect.height - 16;
+      modal.style.top = Math.max(16, top) + "px";
+      return;
+    }
     
     const highlights = overlay.querySelectorAll(".tutorial-highlight");
     const targetSelectors = step.targets && Array.isArray(step.targets) ? step.targets : (step.target ? [step.target] : []);
@@ -1202,7 +1299,7 @@ function showTutorialStep() {
   };
   
   // 모달 위치 계산 (타겟 요소 아래에 배치) - requestAnimationFrame으로 렌더링 후 계산
-  if (targetRects.length > 0 && !step.fullScreen) {
+  if ((targetRects.length > 0 || step.lift) && !step.fullScreen) {
     requestAnimationFrame(() => {
       updateTargetPosition();
     });
@@ -1253,10 +1350,18 @@ function prevTutorialStep() {
   }
 }
 
+function clearTutorialLifts() {
+  document.querySelectorAll(".tutorial-lift").forEach(el => el.classList.remove("tutorial-lift"));
+  const liftModal = document.getElementById("tutorial-modal-lift");
+  if (liftModal) liftModal.remove();
+}
+
 function endTutorial() {
   tutorialState.active = false;
   const overlay = document.getElementById("tutorial-overlay");
   if (overlay) overlay.remove();
+  clearTutorialLifts();
+  removeTutorialTempTasks();
   
   // 스크롤 리스너 제거
   if (tutorialState.scrollListener) {

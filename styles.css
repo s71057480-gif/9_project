@@ -348,13 +348,46 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.timer-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 18px 0;
+}
+
 .timer {
   font-size: 56px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-align: center;
-  margin: 18px 0;
   color: #0f766e;
+}
+
+.timer-clock {
+  --pct: 100;
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 3px solid #0f766e;
+  background: conic-gradient(#dc2626 calc(var(--pct) * 1%), #e5e7eb 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-clock-text {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: #fff;
+  color: #0f766e;
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .kpis {
