@@ -2,6 +2,8 @@ const STORAGE_KEY = "nine_project_mvp_v1";
 const FAIL_PENALTY_POINTS = 5;
 const BREAK_TOKEN_RATIO = 0.2;
 const EARLY_COMPLETE_COST = 50;
+const EASTER_EGG_POINT_THRESHOLD = 250;
+const EASTER_EGG_BONUS = 1000;
 const THEME_KEY = "mission_possible_theme";
 
 const TUTORIAL_STEPS = [
@@ -197,7 +199,17 @@ function renderOnboarding() {
   });
 }
 
+function checkEasterEgg() {
+  if (state.easterEggClaimed || state.points < EASTER_EGG_POINT_THRESHOLD) return;
+  state.easterEggClaimed = true;
+  state.points += EASTER_EGG_BONUS;
+  logPoint("earn", EASTER_EGG_BONUS, "이스터에그 보상");
+  saveState();
+  alert("축하합니다 이스터에그를 발견하셨네요 보상으로 1000포인트를 드리겠습니다.");
+}
+
 function renderHome() {
+  checkEasterEgg();
   const today = isoDate(new Date());
   const todaysTasks = getTodayTasks(today);
   const completedToday = state.sessions.filter((s) => isoDate(new Date(s.endAt)) === today && s.result === "success").length;
@@ -993,6 +1005,7 @@ function loadState() {
     tasks: [],
     sessions: [],
     points: 0,
+    easterEggClaimed: false,
     breakTokens: 0,
     shields: 0,
     pointLedger: [],
